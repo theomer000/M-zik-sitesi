@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BASS MONSTER v12 - POWER EDITION</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Poppins:wght@300;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --neon: #00f2ff; --pink: #ff0055; --bg: #050505; --yt: #ff0000; --spot: #1DB954; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); color: #fff; font-family: 'Poppins', sans-serif; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+        #canvas { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
+
+        .master-card {
+            background: rgba(10, 10, 10, 0.98); backdrop-filter: blur(35px);
+            border: 2px solid var(--neon); border-radius: 25px;
+            width: 500px; padding: 25px; z-index: 100; text-align: center;
+            box-shadow: 0 0 60px rgba(0, 242, 255, 0.2);
+        }
+
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; background: #151515; padding: 5px; border-radius: 12px; overflow-x: auto; scrollbar-width: none; }
+        .tab-btn {
+            flex: 1; padding: 10px; border: none; background: transparent;
+            color: #555; font-family: 'Orbitron'; font-size: 0.6rem;
+            cursor: pointer; border-radius: 10px; transition: 0.3s;
+        }
+        .tab-btn.active { background: var(--neon); color: #000; font-weight: bold; }
+        .tab-btn.yt-tab.active { background: var(--yt); color: #fff; }
+        .tab-btn.spot-tab.active { background: var(--spot); color: #fff; }
+
+        .category-content { display: none; min-height: 220px; animation: fadeIn 0.3s ease; }
+        .category-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        input[type="text"] {
+            width: 100%; padding: 12px; background: #111;
+            border: 1px solid #333; border-radius: 10px; color: #fff;
+            outline: none; font-size: 0.85rem; box-sizing: border-box; margin-bottom: 10px;
+        }
+
+        .action-btn {
+            width: 100%; padding: 15px; margin-top: 10px; border-radius: 12px;
+            border: none; font-family: 'Orbitron'; font-weight: bold; cursor: pointer;
+            text-decoration: none; display: inline-block; transition: 0.3s;
+        }
+
+        /* SES AYARLARI */
+        .slider-group { margin: 15px 0; text-align: left; }
+        .label-row { display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 5px; color: var(--neon); }
+        input[type="range"] { width: 100%; accent-color: var(--pink); cursor: pointer; }
+
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn-p { padding: 12px; border: none; border-radius: 12px; font-family: 'Orbitron'; cursor: pointer; }
+        .play { background: var(--neon); color: #000; }
+        .stop { background: #222; color: #fff; }
+    </style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div class="master-card">
+    <h2 style="font-family: 'Orbitron'; color: var(--neon); margin: 0 0 15px 0;">BASS MONSTER v12</h2>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab(event, 'nameSearch')">HIZLI</button>
+        <button class="tab-btn yt-tab" onclick="openTab(event, 'ytTab')">YOUTUBE</button>
+        <button class="tab-btn spot-tab" onclick="openTab(event, 'spotTab')">SPOTIFY</button>
+        <button class="tab-btn" onclick="openTab(event, 'fileTab')">DOSYA/URL</button>
+    </div>
+
+    <div id="nameSearch" class="category-content active">
+        <input type="text" id="nameInp" placeholder="Şarkı adı yazıp Enter'la..." onkeydown="if(event.key==='Enter') searchMusic()">
+        <div id="results" style="max-height: 120px; overflow-y: auto; text-align: left;"></div>
+    </div>
+
+    <div id="ytTab" class="category-content">
+        <p style="font-size: 0.7rem; color: #aaa;">Tam sürüm için YouTube'da aç:</p>
+        <input type="text" id="ytQuery" placeholder="YouTube'da ne arayalım?">
+        <button class="action-btn" style="background: var(--yt); color: white;" onclick="launch('yt')">YOUTUBE'DA BUL VE OYNAT</button>
+    </div>
+
+    <div id="spotTab" class="category-content">
+        <p style="font-size: 0.7rem; color: #aaa;">Spotify listeni yan sekmede başlat:</p>
+        <input type="text" id="spotQuery" placeholder="Şarkı veya Sanatçı...">
+        <button class="action-btn" style="background: var(--spot); color: white;" onclick="launch('spot')">SPOTIFY'DA AÇ</button>
+    </div>
+
+    <div id="fileTab" class="category-content">
+        <input type="text" id="linkInp" placeholder="MP3 Linki yapıştır...">
+        <input type="file" id="fileInp" accept="audio/*" style="display:none" onchange="handleFile(this)">
+        <button onclick="document.getElementById('fileInp').click()" class="action-btn" style="background:#222; color:var(--neon); border:1px solid var(--neon);">CİHAZDAN DOSYA SEÇ</button>
+    </div>
+
+    <div class="slider-group">
+        <div class="label-row"><span>VOL BOOST</span><span id="vVal">%100</span></div>
+        <input type="range" id="volR" min="0" max="6" step="0.1" value="1" oninput="update()">
+    </div>
+    <div class="slider-group">
+        <div class="label-row"><span>ULTRA BASS</span><span id="bVal">0dB</span></div>
+        <input type="range" id="bassR" min="0" max="60" step="1" value="0" oninput="update()">
+    </div>
+
+    <div class="controls">
+        <button class="btn-p play" onclick="start()">OYNAT</button>
+        <button class="btn-p stop" onclick="pause()">DURDUR</button>
+    </div>
+</div>
+
+<audio id="audio" crossorigin="anonymous"></audio>
+
+<script>
+    const audio = document.getElementById('audio');
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioCtx.createMediaElementSource(audio);
+    const gainNode = audioCtx.createGain();
+    const bassFilter = audioCtx.createBiquadFilter();
+
+    bassFilter.type = 'lowshelf';
+    bassFilter.frequency.value = 80;
+    source.connect(bassFilter);
+    bassFilter.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    function openTab(evt, name) {
+        let contents = document.getElementsByClassName("category-content");
+        for (let i = 0; i < contents.length; i++) contents[i].classList.remove("active");
+        let btns = document.getElementsByClassName("tab-btn");
+        for (let i = 0; i < btns.length; i++) btns[i].classList.remove("active");
+        document.getElementById(name).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
+
+    function launch(type) {
+        const ytQ = document.getElementById('ytQuery').value;
+        const spQ = document.getElementById('spotQuery').value;
+        if(type === 'yt' && ytQ) window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(ytQ)}`, '_blank');
+        if(type === 'spot' && spQ) window.open(`https://open.spotify.com/search/${encodeURIComponent(spQ)}`, '_blank');
+    }
+
+    async function searchMusic() {
+        const q = document.getElementById('nameInp').value;
+        const resDiv = document.getElementById('results');
+        resDiv.innerHTML = 'Aranıyor...';
+        try {
+            const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=4`);
+            const data = await res.json();
+            resDiv.innerHTML = '';
+            data.results.forEach(t => {
+                const d = document.createElement('div');
+                d.style = "padding:10px; border-bottom:1px solid #222; cursor:pointer; font-size:0.8rem;";
+                d.innerText = `${t.artistName} - ${t.trackName}`;
+                d.onclick = () => { audio.src = t.previewUrl; start(); };
+                resDiv.appendChild(d);
+            });
+        } catch(e) { resDiv.innerHTML = 'Hata oluştu!'; }
+    }
+
+    function handleFile(inp) { if(inp.files[0]) { audio.src = URL.createObjectURL(inp.files[0]); start(); } }
+
+    function start() {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const l = document.getElementById('linkInp').value;
+        if(l && !audio.src.includes(l)) audio.src = l;
+        audio.play();
+    }
+    function pause() { audio.pause(); }
+
+    function update() {
+        gainNode.gain.value = document.getElementById('volR').value;
+        bassFilter.gain.value = document.getElementById('bassR').value;
+        document.getElementById('vVal').innerText = `%${Math.round(gainNode.gain.value * 100)}`;
+        document.getElementById('bVal').innerText = `${bassFilter.gain.value}dB`;
+    }
+
+    // ARKA PLAN
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    let parts = [];
+    window.onmousemove = (e) => { for(let i=0; i<3; i++) parts.push({x:e.x, y:e.y, s:5, vx:Math.random()*4-2, vy:Math.random()*4-2}); }
+    function anim() {
+        ctx.fillStyle = 'rgba(5,5,5,0.2)';
+        ctx.fillRect(0,0,canvas.width, canvas.height);
+        parts.forEach((p,i) => {
+            p.x+=p.vx; p.y+=p.vy; p.s*=0.95;
+            ctx.fillStyle = i%2===0 ? '#00f2ff':'#ff0055';
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI*2); ctx.fill();
+            if(p.s<0.1) parts.splice(i,1);
+        });
+        requestAnimationFrame(anim);
+    }
+    anim();
+</script>
+</body>
+</html>
+
